@@ -5,31 +5,33 @@ pipeline {
         }
     }
     environment { 
-        packageVersion = ''
+        packageVersion = ''   // empty given, it picks from get version stage
         nexusURL = '172.31.5.95:8081'
     }
     options {
         timeout(time: 1, unit: 'HOURS')
         disableConcurrentBuilds()
     }
-    // parameters {
-    //     string(name: 'PERSON', defaultValue: 'Mr Jenkins', description: 'Who should I say hello to?')
+    parameters {
+        // string(name: 'PERSON', defaultValue: 'Mr Jenkins', description: 'Who should I say hello to?')
 
-    //     text(name: 'BIOGRAPHY', defaultValue: '', description: 'Enter some information about the person')
+        // text(name: 'BIOGRAPHY', defaultValue: '', description: 'Enter some information about the person')
 
-    //     booleanParam(name: 'TOGGLE', defaultValue: true, description: 'Toggle this value')
+        booleanParam(name: 'Deploy', defaultValue: false, description: 'Toggle this value')
+        // booleanParam(name: 'TOGGLE', defaultValue: true, description: 'Toggle this value')
 
-    //     choice(name: 'CHOICE', choices: ['One', 'Two', 'Three'], description: 'Pick something')
+        // choice(name: 'CHOICE', choices: ['One', 'Two', 'Three'], description: 'Pick something')
 
-    //     password(name: 'PASSWORD', defaultValue: 'SECRET', description: 'Enter a password')
-    // }
+        // password(name: 'PASSWORD', defaultValue: 'SECRET', description: 'Enter a password')
+    }
     // build
     stages {
         stage('Get the version') {
             steps {
                 script {
+                    // defining packageJson variable to read data from package.json file
                     def packageJson = readJSON file: 'package.json'
-                    packageVersion = packageJson.version
+                    packageVersion = packageJson.version    //from data fetching version
                     echo "application version: $packageVersion"
                 }
             }
@@ -38,6 +40,20 @@ pipeline {
             steps {
                 sh """
                     npm install
+                """
+            }
+        }
+        stage('Unit tests') {
+            steps {
+                sh """
+                    echo "unit tests will run here"
+                """
+            }
+        }
+        stage('Sonar Scan'){
+            steps{
+                sh """
+                    sonar-scanner
                 """
             }
         }
@@ -70,6 +86,12 @@ pipeline {
             }
         }
         stage('Deploy') {
+            // Deploy stage runs only when parameter deploy default value is set to true otherwise skip this stage
+            when { 
+                expression{
+                    params.Deploy == 'true'
+                }
+            }
             steps {
                 script {
                         def params = [
@@ -85,7 +107,7 @@ pipeline {
     post { 
         always { 
             echo 'I will always say Hello again!'
-            deleteDir()
+            deleteDir()    //deletes the workspace created
         }
         failure { 
             echo 'this runs when pipeline is failed, used generally to send some alerts'
